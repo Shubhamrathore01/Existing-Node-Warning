@@ -1,0 +1,36 @@
+<?php
+
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_form_alter().
+ */
+function existing_node_warning_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  // Check if the form is for creating or editing a node.
+  $form_parts = explode('_', $form_id);
+  if ($form_parts[0] === 'node' && end($form_parts) === 'form') {
+    // Add custom validation to the form.
+    $form['#validate'][] = 'existing_node_warning_validate_node_form';
+  }
+}
+
+/**
+ * Custom validation function for node forms.
+ */
+function existing_node_warning_validate_node_form(&$form, FormStateInterface $form_state) {
+  // Get the title entered by the user.
+  $title = $form_state->getValue('title');
+  $title = $title[0]['value'];
+
+  // Check if a node with the same title already exists.
+  $query = \Drupal::entityQuery('node')
+    ->condition('title', $title)
+    ->range(0, 1)
+    ->accessCheck(FALSE);
+  $existing_nids = $query->execute();
+
+  // If a node with the same title already exists, display a validation error.
+  if (!empty($existing_nids)) {
+    $form_state->setErrorByName('title', t('A node with the same title already exists.'));
+  }
+}
